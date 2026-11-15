@@ -31,7 +31,10 @@ import hacer
 
 BASE = 'https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com'
 HOURS = hacer.HOURS
-STEPS = list(range(0, HOURS + 1, 3))
+# Hasta 7 días: los pasos del modelo (cada 3 horas hasta la 144 y cada 6
+# después). Las primeras HOURS horas, hora a hora (rellenando entre pasos);
+# el resto, solo las de cada paso (ver hacer.LATER).
+STEPS = list(range(0, 145, 3)) + list(range(150, hacer.LONG + 1, 6))
 WANT = ('10u', '10v', 'tprate', 'ptype', 'mucape', '2t')
 
 
@@ -66,12 +69,12 @@ def path(c, s, ext):
 
 
 def cycle():
-    """La última pasada que ya llega a las HOURS horas."""
+    """La última pasada que ya llega al último paso."""
     now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
     c = now.replace(hour=now.hour // 6 * 6, minute=0, second=0, microsecond=0)
     for _ in range(8):
         try:
-            get(path(c, HOURS, 'index'))
+            get(path(c, STEPS[-1], 'index'))
             return c
         except Missing:
             c -= dt.timedelta(hours=6)
@@ -158,10 +161,11 @@ def main():
     d = os.path.join(hacer.OUT, name)
     fine = os.path.join(d, 'f')
     os.makedirs(fine)
-    for f in range(HOURS + 1):
-        s0 = f // 3 * 3
-        s1 = min(s0 + 3, STEPS[-1])
-        t = (f - s0) / 3 if s1 > s0 else 0.0
+    hours = list(range(HOURS + 1)) + [s for s in STEPS if s > HOURS]
+    for f in hours:
+        s0 = max(s for s in STEPS if s <= f)
+        s1 = min([s for s in STEPS if s > s0] or [s0])
+        t = (f - s0) / (s1 - s0) if s1 > s0 else 0.0
         near = s0 if t < 0.5 else s1
         for k, out in ((0, fine), (1, d)):
             def at(p):
@@ -172,7 +176,9 @@ def main():
     total = sum(os.path.getsize(os.path.join(r, n))
                 for r, _, ns in os.walk(d) for n in ns)
     epoch = int((c - dt.datetime(1970, 1, 1)).total_seconds())
-    json.dump({'dir': name, 't0': epoch, 'n': HOURS + 1, 'w': 720, 'h': 361,
+    # «n»: las horas seguidas (las de las versiones de la app de antes);
+    # «horas»: todas las que hay, también las de cada 3 o 6 horas.
+    json.dump({'dir': name, 't0': epoch, 'n': HOURS + 1, 'horas': hours, 'w': 720, 'h': 361,
                'res': 0.5, 'modelo': 'ECMWF', 'capas': 'wrsct',
                'fino': {'dir': name + '/f', 'w': 1800, 'h': 901, 'res': 0.2},
                'hecho': int(time.time())},

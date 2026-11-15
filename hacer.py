@@ -10,7 +10,8 @@ imágenes pequeñas del mundo entero a medio grado, una por hora y capa:
   datos/<pasada>/cNN.png       energía para tormentas (gris): x * 20 J/kg (CAPE)
   datos/<pasada>/tNN.png       temperatura a 2 m (gris): x / 2 - 60 °C
 
-NN es la hora desde la pasada (00 a 48). Filas de norte (90°) a sur,
+NN es la hora desde la pasada: de 00 a 48 hora a hora y luego, hasta la
+168 (7 días), cada 3 horas (las que hay en «horas» del índice). Filas de norte (90°) a sur,
 columnas desde la longitud 0 hacia el este.
 """
 import datetime as dt
@@ -28,6 +29,9 @@ from PIL import Image
 
 BASE = 'https://noaa-gfs-bdp-pds.s3.amazonaws.com'
 HOURS = 48
+# Y después, hasta 7 días, cada 3 horas.
+LONG = 168
+LATER = list(range(HOURS + 3, LONG + 1, 3))
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datos')
 WANT = {
     'UGRD:10 m above ground': 'u',
@@ -64,7 +68,7 @@ def cycle():
     c = now.replace(hour=now.hour // 6 * 6, minute=0, second=0, microsecond=0)
     for _ in range(6):
         try:
-            get(BASE + '/' + key(c, HOURS) + '.idx', tries=1)
+            get(BASE + '/' + key(c, LONG) + '.idx', tries=1)
             return c
         except Exception:
             c -= dt.timedelta(hours=6)
@@ -105,7 +109,7 @@ def gfs_main():
     name = c.strftime('%Y%m%d%H')
     print('pasada', name, flush=True)
     with ThreadPoolExecutor(8) as ex:
-        got = list(ex.map(lambda f: hour(c, f), range(HOURS + 1)))
+        got = list(ex.map(lambda f: hour(c, f), list(range(HOURS + 1)) + LATER))
     shutil.rmtree(OUT, ignore_errors=True)
     d = os.path.join(OUT, name)
     os.makedirs(d)
@@ -128,7 +132,8 @@ def gfs_main():
     for n in os.listdir(d):
         total += os.path.getsize(os.path.join(d, n))
     epoch = int((c - dt.datetime(1970, 1, 1)).total_seconds())
-    json.dump({'dir': name, 't0': epoch, 'n': HOURS + 1, 'w': 720, 'h': 361,
+    json.dump({'dir': name, 't0': epoch, 'n': HOURS + 1,
+               'horas': list(range(HOURS + 1)) + LATER, 'w': 720, 'h': 361,
                'res': 0.5, 'capas': 'wrsct', 'hecho': int(time.time())},
               open(OUT + '/manifest.json', 'w'))
     finish()
