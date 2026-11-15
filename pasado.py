@@ -43,7 +43,8 @@ import imerg
 
 OUT = os.path.join(hacer.OUT, 'obs')
 DAYS = 30
-TOTALS = [1, 3, 7, 14, 21, 30]
+# Todos, del 1 al 30: en la app se eligen con una barra, día a día.
+TOTALS = list(range(1, DAYS + 1))
 # Como mucho tantos bloques nuevos por vez (la primera, el mes entero).
 MAX_NEW = 130
 # Y días de lluvia de los satélites (cada uno, un fichero de la NASA).
