@@ -94,7 +94,7 @@ def down(a, f):
     b = sum(np.roll(a, r - i, axis=1) * w[i] for i in range(len(w)))
     p = np.concatenate([np.repeat(b[:1], r, 0), b, np.repeat(b[-1:], r, 0)])
     b = sum(p[i:i + b.shape[0]] * w[i] for i in range(len(w)))
-    return b[::f, ::f]
+    return np.ascontiguousarray(b[::f, ::f], dtype=np.float32)
 
 
 def step(c, s):
@@ -116,7 +116,10 @@ def step(c, s):
                 # Qué cae: 5 nieve, 6 nieve húmeda, 7 mezcla. Se guarda la
                 # parte de nieve (0 a 1).
                 v = np.where((v == 5) | (v == 6), 1.0, np.where(v == 7, 0.5, 0.0))
-            out[p] = (down(v, 2), down(v, 5))
+            # Más allá de las HOURS horas, solo de lejos (a 0,5°): las de
+            # detalle de 7 días no caben en la memoria del ordenador de
+            # GitHub (se quedaba sin ella y lo apagaban).
+            out[p] = (down(v, 2) if s <= HOURS else None, down(v, 5))
     return s, out
 
 
@@ -164,10 +167,10 @@ def main():
     hours = list(range(HOURS + 1)) + [s for s in STEPS if s > HOURS]
     for f in hours:
         s0 = max(s for s in STEPS if s <= f)
-        s1 = min([s for s in STEPS if s > s0] or [s0])
+        s1 = s0 if f == s0 else min(s for s in STEPS if s > s0)
         t = (f - s0) / (s1 - s0) if s1 > s0 else 0.0
         near = s0 if t < 0.5 else s1
-        for k, out in ((0, fine), (1, d)):
+        for k, out in ((0, fine), (1, d)) if f <= HOURS else ((1, d),):
             def at(p):
                 return got[s0][p][k] * (1 - t) + got[s1][p][k] * t
             rain = at('tprate') * 3600  # mm/h
@@ -180,7 +183,7 @@ def main():
     # «horas»: todas las que hay, también las de cada 3 o 6 horas.
     json.dump({'dir': name, 't0': epoch, 'n': HOURS + 1, 'horas': hours, 'w': 720, 'h': 361,
                'res': 0.5, 'modelo': 'ECMWF', 'capas': 'wrsct',
-               'fino': {'dir': name + '/f', 'w': 1800, 'h': 901, 'res': 0.2},
+               'fino': {'dir': name + '/f', 'w': 1800, 'h': 901, 'res': 0.2, 'hasta': HOURS},
                'hecho': int(time.time())},
               open(hacer.OUT + '/manifest.json', 'w'))
     hacer.finish()
