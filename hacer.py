@@ -1,4 +1,4 @@
-"""El tiempo para el mapa de Oteo.
+"""El tiempo para el mapa de Ohmira.
 
 Baja la última previsión pública GFS (NOAA, dominio público) y la deja en
 imágenes pequeñas del mundo entero a medio grado, una por hora y capa:
@@ -142,7 +142,7 @@ def gfs_main():
 
 def finish():
     open(OUT + '/.nojekyll', 'w').close()
-    # Cloudflare Pages (tiempo.oteoapp.com): que la app pueda leerlas desde
+    # Cloudflare Pages (tiempo.ohmiraapp.com): que la app pueda leerlas desde
     # su página (CORS), el índice siempre fresco y las imágenes de cada
     # pasada (que no cambian) guardadas en caché.
     open(OUT + '/_headers', 'w').write(

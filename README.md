@@ -1,4 +1,4 @@
-# El tiempo para el mapa de Oteo
+# El tiempo para el mapa de Ohmira
 
 Cada 6 horas baja la previsión pública GFS (NOAA, dominio público) y la
 publica en imágenes pequeñas del mundo (viento, lluvia, nieve y riesgo de

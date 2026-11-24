@@ -1,4 +1,4 @@
-"""La previsión del modelo europeo (ECMWF IFS) para el mapa de Oteo.
+"""La previsión del modelo europeo (ECMWF IFS) para el mapa de Ohmira.
 
 Datos abiertos del ECMWF (licencia CC BY 4.0: se pueden usar, también en
 una app de pago, citando «ECMWF»). Se usan los de 0,1° (unos 9 km), que
